@@ -701,8 +701,7 @@ int main(int argc, char *argv[])
 	int running = 1;
 
 	if (rs422Mode)
-	{
-		RS422ThreadArguments arguments = {0};
+	{		RS422ThreadArguments arguments = {0};
 		arguments.fd = serialIO;
 		arguments.running = &running;
 		pthread_create(&rs422ThreadID, NULL, rs422Thread, &arguments);
