@@ -1,6 +1,8 @@
 {
     "files.associations": {
+        "html": "html",
         "in.h": "c",
-        "common.h": "c"
+        "common.h": "c",
+        "time.h": "c"
     }
 }

@@ -7,16 +7,16 @@
 //public structs and read/writing funcs
 //to be called in opened thread
 
-//void might need to be a return type?
-public void cardConversion {
-
 // Defines struct CircularBuffer that is then instanced as input/output buffer
+#define BUFFER_SIZE 1024
+#define TIMEOUT_SELECT 1000
+
 typedef struct
 {
     //buffer used to prevent overflow errors
     //string (array of chars) called buffer, array is set to a value called buffer_size?
     unsigned char buffer[BUFFER_SIZE];
-    //int vars used to read/write data
+    //int vars used to read/write data in the buffer
     int head;
     int tail;
 } CircularBuffer;
@@ -31,7 +31,7 @@ CircularBuffer rs422OutputBuffer;
 int readBytes(unsigned char *buffer, int amount)
 {
     //if struct vars (defined above) equal each other, timeout for 1000 microseconds and return nothing
-    //in english: just pauses the byte reading if the input buffer is all the same (only if its empty?)
+    //in english: just pauses the byte reading if the circular buffer is empty/no data
     if (rs422InputBuffer.head == rs422InputBuffer.tail)
     {
         usleep(TIMEOUT_SELECT * 1000);
@@ -39,23 +39,29 @@ int readBytes(unsigned char *buffer, int amount)
     }
 
     // defines int SIZE to be buffer_size & the inputbuffer.head minus .tail
+    // size is how much data inside buffer
     int size = BUFFER_SIZE + rs422InputBuffer.head - rs422InputBuffer.tail;
 
     // if inputbuffer.head is more than or equal to inputbuffer.tail
     // minus inputbuffer.tail from inputbuffer.head & assign this value to var size
-    if (rs422InputBuffer.head >= rs422InputBuffer.tail)
-
+    // if head is in front of tail in buffer, buffer size is actually head - minus
+    if (rs422InputBuffer.head >= rs422InputBuffer.tail){
         size = rs422InputBuffer.head - rs422InputBuffer.tail;
+    }
 
     //then copy the memory values of rs422inputbuffer buffer (string inside predefined struct) into buffer ?
     //using size to indicate how many bytes to copy ?
+
+    // Copying memory values into buffer. Looks at start first, then offsets by tail value, then copies size value. Copies whole buffer.
+    // in english: copying data from circular buffer into normal buffer
     memcpy(buffer, &rs422InputBuffer.buffer[rs422InputBuffer.tail], size);
 
+    // if buffer is full, ie cant be used without looping, moves tail along the buffer accounting for the loop
     if (rs422InputBuffer.tail + size > BUFFER_SIZE)
         rs422InputBuffer.tail = rs422InputBuffer.tail + size - BUFFER_SIZE;
+    //moves tail along buffer if loop isnt needed
     else
         rs422InputBuffer.tail += size;
-
     return size;
 }
 
@@ -96,5 +102,4 @@ if isRunning = true;
 } else
 return;
 
-}
 
