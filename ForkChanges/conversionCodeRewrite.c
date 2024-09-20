@@ -2,7 +2,7 @@
 // This code hopes to simplify and isolate the RS422 conversion code
 
 //TODO: opening and closing thread
-//TODO: check void is properly defined, change if needed
+//TODO: Properly applying the read/write functions
 
 //public structs and read/writing funcs
 //to be called in opened thread
@@ -14,20 +14,20 @@
 typedef struct
 {
     //buffer used to prevent overflow errors
-    //string (array of chars) called buffer, array is set to a value called buffer_size?
+    //array called buffer, array is set to buffer_size
     unsigned char buffer[BUFFER_SIZE];
     //int vars used to read/write data in the buffer
     int head;
     int tail;
 } CircularBuffer;
 
-//struct instances
+//struct instances for both input and output
 CircularBuffer rs422InputBuffer;
 CircularBuffer rs422OutputBuffer;
 
 // function to read incoming bytes
 // to be called in thread
-//info: int function type, parses one pointer and one var (buffer and amount respectively)
+//info: int function type, parses pointer to buffer and one var
 int readBytes(unsigned char *buffer, int amount)
 {
     //if struct vars (defined above) equal each other, timeout for 1000 microseconds and return nothing
@@ -44,7 +44,7 @@ int readBytes(unsigned char *buffer, int amount)
 
     // if inputbuffer.head is more than or equal to inputbuffer.tail
     // minus inputbuffer.tail from inputbuffer.head & assign this value to var size
-    // if head is in front of tail in buffer, buffer size is actually head - minus
+    // if head is in front of tail in buffer, buffer size is actually head - minus tail
     if (rs422InputBuffer.head >= rs422InputBuffer.tail){
         size = rs422InputBuffer.head - rs422InputBuffer.tail;
     }
@@ -66,30 +66,45 @@ int readBytes(unsigned char *buffer, int amount)
 }
 
 
-// function to write outgoing bytes
+// function to write outgoing bytes w/ pointer to buffer
 // to be called in thread
 int writeBytes(unsigned char *buffer, int amount)
 {
-    
+    // if no data, return 0
     if (amount < 1)
         return 0;
 
+    // if head + 1 is in same place in buffer as tail, ie no data in buffer, return 0
     if (rs422OutputBuffer.head + 1 == rs422OutputBuffer.tail)
         return 0;
 
+    // if buffer is about to be full, do this
+    // if data you want to write would overflow buffer, do this
     if (rs422OutputBuffer.head + amount > BUFFER_SIZE)
     {
+        // buffer size - outputbuffer is how much is left
         int firstPart = BUFFER_SIZE - rs422OutputBuffer.head;
+        // how much data left to written from the start of outputbuffer (circular buffer)
         int secondPart = amount - firstPart;
+        // copying first part into circular buffer (whats left of in circular buffer)
+        // copying data from pointer of .buffer inside outputbuffer struct, at the position of outputbuffer head
+        // data its copying is from buffer ("working memory")
         memcpy(&rs422OutputBuffer.buffer[rs422OutputBuffer.head], buffer, firstPart);
+        // copying second part (remaining data) into start of circular buffer
         memcpy(&rs422OutputBuffer.buffer[0], buffer + firstPart, secondPart);
+        //moves head to end of second part (after writing)
         rs422OutputBuffer.head = secondPart;
     }
     else
+    //else memcopy 
     {
+        //copies buffer ("working memory") into output buffer (data ready to write to file) starting at head, amount is how far its writing
+        //writes new data into output buffer starting at head
         memcpy(&rs422OutputBuffer.buffer[rs422OutputBuffer.head], buffer, amount);
+        //move buffer head to where data (amount) ends
         rs422OutputBuffer.head += amount;
     }
+    //return written data
     return amount;
 }
 
@@ -99,6 +114,7 @@ bool isRunning = true;
 if isRunning = true; 
 {
 //start thread for conversion
+//read/write bytes as applicable for values as read by readBytes
 } else
 return;
 
